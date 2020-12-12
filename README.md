@@ -6,9 +6,9 @@ Used by the following demos:
 * [Raytracer][webfx-raytracer-demo-link] ([Github repository][webfx-raytracer-repo-link]) in the settings
 
 [hansolo-odometer-link]: https://github.com/HanSolo/odometer
-[webfx-tallycounter-demo-link]: https://webfx-tallycounter-demo.netlify.app
+[webfx-tallycounter-demo-link]: https://tallycounter.webfx-project.org
 [webfx-tallycounter-repo-link]: https://github.com/webfx-project/webfx-demo-tallycounter
-[webfx-mandelbrot-demo-link]: https://webfx-mandelbrot-demo.netlify.app
+[webfx-mandelbrot-demo-link]: https://mandelbrot.webfx-project.org
 [webfx-mandelbrot-repo-link]: https://github.com/webfx-project/webfx-demo-mandelbrot
-[webfx-raytracer-demo-link]: https://webfx-raytracer-demo.netlify.app
+[webfx-raytracer-demo-link]: https://raytracer.webfx-project.org
 [webfx-raytracer-repo-link]: https://github.com/webfx-project/webfx-demo-raytracer

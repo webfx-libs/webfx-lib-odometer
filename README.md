@@ -1,4 +1,4 @@
-A WebFx port of the [Odometer][hansolo-odometer-link] JavaFx library.
+A WebFX port of the [Odometer][hansolo-odometer-link] JavaFX library.
 
 Used by the following demos:
 * [TallyCounter][webfx-tallycounter-demo-link] ([Github repository][webfx-tallycounter-repo-link]) for the counter

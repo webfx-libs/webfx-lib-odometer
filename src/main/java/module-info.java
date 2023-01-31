@@ -6,6 +6,7 @@ module webfx.lib.odometer {
     requires java.base;
     requires javafx.base;
     requires javafx.graphics;
+    requires webfx.platform.useragent;
 
     // Exported packages
     exports eu.hansolo.fx.odometer;

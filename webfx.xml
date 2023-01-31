@@ -58,6 +58,7 @@
                 <module>java.base</module>
                 <module>webfx-kit-javafxbase-emul</module>
                 <module>webfx-kit-javafxgraphics-emul</module>
+                <module>webfx-platform-useragent</module>
             </used-by-source-modules>
 
         </project>

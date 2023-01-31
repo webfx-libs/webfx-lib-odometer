@@ -16,6 +16,7 @@
 
 package eu.hansolo.fx.odometer;
 
+import dev.webfx.platform.useragent.UserAgent;
 import eu.hansolo.fx.odometer.event.OdometerEvent;
 import eu.hansolo.fx.odometer.event.OdometerObserver;
 import eu.hansolo.fx.odometer.event.Type;
@@ -204,9 +205,12 @@ public class Odometer extends Region {
         initialized = true;
     }
 
+    private final Canvas digitCanvas = new Canvas();
+    GraphicsContext digitCtx = digitCanvas.getGraphicsContext2D();
+
     private WritableImage createDigitImage(int digit, boolean decimal) {
-        Canvas digitCanvas = new Canvas(digitWidth, extendedHeight);
-        GraphicsContext digitCtx = digitCanvas.getGraphicsContext2D();
+        digitCanvas.setWidth(digitWidth);
+        digitCanvas.setHeight(extendedHeight);
         digitCtx.setFill(decimal ? getDecimalBackgroundColor() : getDigitBackgroundColor());
         digitCtx.fillRect(0, 0, digitWidth, extendedHeight);
 
@@ -217,7 +221,8 @@ public class Odometer extends Region {
         digitCtx.strokeLine(digitWidth, 0, digitWidth, extendedHeight);
 
         digitCtx.setTextAlign(TextAlignment.CENTER);
-        digitCtx.setTextBaseline(VPos.CENTER);
+        //digitCtx.setTextBaseline(VPos.CENTER); // Doesn't produce the same result in HTML, so we change the baseline to BOTTOM (and updated zeroOffset accordingly)
+        digitCtx.setTextBaseline(VPos.BOTTOM);   // Produces the best similar result between JavaFX and HTML
         digitCtx.setFont(font);
         digitCtx.setFill(decimal ? getDecimalForegroundColor() : getDigitForegroundColor());
         for (int i = -1 ; i <= 2 ; i++) {
@@ -471,11 +476,11 @@ public class Odometer extends Region {
             digitHeight    = Math.floor(height * 0.85);
             digitWidth     = Math.floor(height * 0.68);
             width          = digitWidth * (_digits + _decimals);
-            font           = Font.font("Arial", digitHeight);
+            font           = Font.font("Arial", digitHeight * (UserAgent.isBrowser() ? 0.95 : 1)); // Observing a 5% size increase on screen in HTML compared to JavaFX, so compensate that
             columnHeight   = digitHeight * 3;
             extendedHeight = columnHeight * 1.1;
-            verticalSpace  = digitHeight * 0.9;
-            zeroOffset     = -digitHeight * 0.15;
+            verticalSpace  = digitHeight * 0.91;
+            zeroOffset     = -digitHeight * 0.7;
 
             pane.setMaxSize(width, height);
             pane.setPrefSize(width, height);

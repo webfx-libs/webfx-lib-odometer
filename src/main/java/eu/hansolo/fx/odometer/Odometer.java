@@ -27,9 +27,9 @@ import javafx.beans.property.*;
 import javafx.collections.ObservableList;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
-import javafx.scene.SnapshotParameters;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.image.Image;
 import javafx.scene.image.WritableImage;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
@@ -43,6 +43,7 @@ import javafx.scene.text.TextAlignment;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.IntStream;
 
 
 /**
@@ -71,14 +72,9 @@ public class Odometer extends Region {
     private              Canvas                 backgroundCanvas;
     private              GraphicsContext        backgroundCtx;
     private              Rectangle              foreground;
-    private              Canvas                 digitCanvas;
-    private              GraphicsContext        digitCtx;
-    private              WritableImage          digitImage;
-    private              Canvas                 decimalCanvas;
-    private              GraphicsContext        decimalCtx;
-    private              WritableImage          decimalImage;
+    private              WritableImage[]        digitImages;
+    private              WritableImage[]        decimalImages;
     private              Pane                   pane;
-    private              SnapshotParameters     snapshotParameters;
     private              double                 digitWidth;
     private              double                 digitHeight;
     private              double                 columnHeight;
@@ -117,7 +113,6 @@ public class Odometer extends Region {
         _digitForegroundColor   = DEFAULT_DIGIT_FOREGROUND_COLOR;
         _decimalBackgroundColor = DEFAULT_DECIMAL_BACKGROUND_COLOR;
         _decimalForegroundColor = DEFAULT_DECIMAL_FOREGROUND_COLOR;
-        snapshotParameters      = new SnapshotParameters();
         value                   = new DoublePropertyBase(0) {
             @Override protected void invalidated() {
                 if (get() < 0) { set(0); }
@@ -159,17 +154,9 @@ public class Odometer extends Region {
         backgroundCanvas = new Canvas(width, height);
         backgroundCtx    = backgroundCanvas.getGraphicsContext2D();
 
-        digitCanvas = new Canvas(width, height);
-        digitCtx    = digitCanvas.getGraphicsContext2D();
-
-        decimalCanvas = new Canvas(width, height);
-        decimalCtx    = decimalCanvas.getGraphicsContext2D();
-
         foreground = new Rectangle();
 
-        pane = new Pane(digitCanvas, decimalCanvas, backgroundCanvas, foreground);
-        digitCanvas.relocate(-1000, 0);
-        decimalCanvas.relocate(-1000, 0);
+        pane = new Pane(backgroundCanvas, foreground);
 
         getChildren().setAll(pane);
     }
@@ -206,12 +193,21 @@ public class Odometer extends Region {
     }
 
     private boolean isReadyToInit() {
-        return digitCanvas.getScene() != null;
+        return width > 0 && height > 0;
     }
 
     private void init() {
         //if (!isShowing()) { return; }
-        digitCtx.setFill(getDigitBackgroundColor());
+        digitImages = IntStream.rangeClosed(0, 9).mapToObj(digit -> createDigitImage(digit, false)).toArray(WritableImage[]::new);
+        if (_decimals > 0)
+            decimalImages = IntStream.rangeClosed(0, 9).mapToObj(digit -> createDigitImage(digit, true)).toArray(WritableImage[]::new);
+        initialized = true;
+    }
+
+    private WritableImage createDigitImage(int digit, boolean decimal) {
+        Canvas digitCanvas = new Canvas(digitWidth, extendedHeight);
+        GraphicsContext digitCtx = digitCanvas.getGraphicsContext2D();
+        digitCtx.setFill(decimal ? getDecimalBackgroundColor() : getDigitBackgroundColor());
         digitCtx.fillRect(0, 0, digitWidth, extendedHeight);
 
         digitCtx.setLineWidth(1);
@@ -223,33 +219,11 @@ public class Odometer extends Region {
         digitCtx.setTextAlign(TextAlignment.CENTER);
         digitCtx.setTextBaseline(VPos.CENTER);
         digitCtx.setFont(font);
-        digitCtx.setFill(getDigitForegroundColor());
-        for (int i = 9 ; i < 21 ; i++) {
-            digitCtx.fillText(Integer.toString(i % 10), digitWidth * 0.5, verticalSpace * (i - 9) + verticalSpace / 2);
+        digitCtx.setFill(decimal ? getDecimalForegroundColor() : getDigitForegroundColor());
+        for (int i = -1 ; i <= 2 ; i++) {
+            digitCtx.fillText(Integer.toString((digit + i + 10) % 10), digitWidth * 0.5, verticalSpace * (i + 1) + verticalSpace / 2);
         }
-        digitImage = digitCanvas.snapshot(snapshotParameters, null);
-
-        if (_decimals > 0) {
-            decimalCtx.setFill(getDecimalBackgroundColor());
-            decimalCtx.fillRect(0, 0, digitWidth, extendedHeight);
-
-            decimalCtx.setLineWidth(1);
-            decimalCtx.setStroke(Color.web("#f0f0f0"));
-            decimalCtx.strokeLine(0, 0, 0, extendedHeight);
-            decimalCtx.setStroke(Color.web("#202020"));
-            decimalCtx.strokeLine(digitWidth, 0, digitWidth, extendedHeight);
-
-            decimalCtx.setTextAlign(TextAlignment.CENTER);
-            decimalCtx.setTextBaseline(VPos.CENTER);
-            decimalCtx.setFont(font);
-            decimalCtx.setFill(getDecimalForegroundColor());
-
-            for (int i = 9 ; i < 21 ; i++) {
-                decimalCtx.fillText(Integer.toString(i % 10), digitWidth * 0.5, verticalSpace * (i - 9) + verticalSpace / 2);
-            }
-            decimalImage = decimalCanvas.snapshot(snapshotParameters, null);
-        }
-        initialized = true;
+        return digitCanvas.snapshot(null, null);
     }
 
 
@@ -447,11 +421,9 @@ public class Odometer extends Region {
             int idx = numbString.length() - i - 1;
             num = idx < 0 ? 0 : Integer.parseInt(numbString.substring(idx, numbString.length() - i));
             if (prevNum != 9) { fraction = 0; }
-            if (i < _decimals) {
-                backgroundCtx.drawImage(decimalImage, width - digitWidth * pos, -(verticalSpace * (num + fraction) + zeroOffset));
-            } else {
-                backgroundCtx.drawImage(digitImage, width - digitWidth * pos, -(verticalSpace * (num + fraction) + zeroOffset));
-            }
+            Image[] images = i < _decimals ? decimalImages : digitImages;
+            Image digitImage = images[num];
+            backgroundCtx.drawImage(digitImage, width - digitWidth * pos, -(verticalSpace * (1 + fraction) + zeroOffset));
             pos++;
             prevNum = num;
         }
@@ -500,10 +472,10 @@ public class Odometer extends Region {
             digitWidth     = Math.floor(height * 0.68);
             width          = digitWidth * (_digits + _decimals);
             font           = Font.font("Arial", digitHeight);
-            columnHeight   = digitHeight * 11;
+            columnHeight   = digitHeight * 3;
             extendedHeight = columnHeight * 1.1;
-            verticalSpace  = columnHeight / 12;
-            zeroOffset     = verticalSpace * 0.81;
+            verticalSpace  = digitHeight * 0.9;
+            zeroOffset     = -digitHeight * 0.15;
 
             pane.setMaxSize(width, height);
             pane.setPrefSize(width, height);
@@ -511,12 +483,6 @@ public class Odometer extends Region {
 
             backgroundCanvas.setWidth(width);
             backgroundCanvas.setHeight(height);
-
-            digitCanvas.setWidth(digitWidth);
-            digitCanvas.setHeight(extendedHeight);
-
-            decimalCanvas.setWidth(digitWidth);
-            decimalCanvas.setHeight(extendedHeight);
 
             foreground.setWidth(width);
             foreground.setHeight(height);

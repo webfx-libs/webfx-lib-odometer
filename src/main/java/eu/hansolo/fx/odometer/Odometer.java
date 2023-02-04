@@ -146,10 +146,10 @@ public class Odometer extends Region {
 
         foregroundGradient = new LinearGradient(0, 0, 0, 1, true, CycleMethod.NO_CYCLE,
                                                 new Stop(0, Color.rgb(0, 0, 0, 1)),
-                                                new Stop(0.1, Color.rgb(0, 0, 0, 0.4)),
+                                                new Stop(0.1, Color.rgb(0, 0, 0, 0.5)),
                                                 new Stop(0.33, Color.rgb(255, 255, 255, 0.45)),
                                                 new Stop(0.46, Color.rgb(255, 255, 255, 0)),
-                                                new Stop(0.9, Color.rgb(0, 0, 0, 0.4)),
+                                                new Stop(0.9, Color.rgb(0, 0, 0, 0.5)),
                                                 new Stop(1, Color.rgb(0, 0, 0, 1)));
 
         backgroundCanvas = new Canvas(width, height);

@@ -30,8 +30,6 @@ import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.image.Image;
-import javafx.scene.image.WritableImage;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
@@ -44,7 +42,6 @@ import javafx.scene.text.TextAlignment;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.IntStream;
 
 
 /**
@@ -73,8 +70,6 @@ public class Odometer extends Region {
     private              Canvas                 backgroundCanvas;
     private              GraphicsContext        backgroundCtx;
     private              Rectangle              foreground;
-    private              WritableImage[]        digitImages;
-    private              WritableImage[]        decimalImages;
     private              Pane                   pane;
     private              double                 digitWidth;
     private              double                 digitHeight;
@@ -97,7 +92,6 @@ public class Odometer extends Region {
     private              Font                   font;
     private              double                 oldValue;
     private              DoubleProperty         value;
-    private              boolean                initialized;
     private              BooleanBinding         showing;
     private              List<OdometerObserver> observers;
 
@@ -124,7 +118,6 @@ public class Odometer extends Region {
         };
         _digits                 = DIGITS < 0 ? 0 : DIGITS;
         _decimals               = DECIMALS < 1 ? 1 : DECIMALS;
-        initialized             = false;
         observers               = new /*CopyOnWrite*/ArrayList<>();
         initGraphics();
         registerListeners();
@@ -168,7 +161,7 @@ public class Odometer extends Region {
         value.addListener((o, ov, nv) -> oldValue = ov.doubleValue());
         sceneProperty().addListener(o -> {
             if (null == getScene()) { return; }
-            Platform.runLater(this::initAndResize);
+            Platform.runLater(() -> resize());
             getScene().windowProperty().addListener(o1 -> {
                 if (null == getScene().getWindow()) { return; }
                 showing = Bindings.createBooleanBinding(() -> {
@@ -180,57 +173,11 @@ public class Odometer extends Region {
                 }, sceneProperty(), getScene().windowProperty(), getScene().getWindow().showingProperty());
 
                 showing.addListener(o2 -> {
-                    if (showing.get()) initAndResize();
+                    if (showing.get()) resize();
                 });
             });
         });
     }
-
-    private void initAndResize() {
-        if (isReadyToInit()) {
-            init();
-            resize();
-        }
-    }
-
-    private boolean isReadyToInit() {
-        return width > 0 && height > 0;
-    }
-
-    private void init() {
-        //if (!isShowing()) { return; }
-        digitImages = IntStream.rangeClosed(0, 9).mapToObj(digit -> createDigitImage(digit, false)).toArray(WritableImage[]::new);
-        if (_decimals > 0)
-            decimalImages = IntStream.rangeClosed(0, 9).mapToObj(digit -> createDigitImage(digit, true)).toArray(WritableImage[]::new);
-        initialized = true;
-    }
-
-    private final Canvas digitCanvas = new Canvas();
-    GraphicsContext digitCtx = digitCanvas.getGraphicsContext2D();
-
-    private WritableImage createDigitImage(int digit, boolean decimal) {
-        digitCanvas.setWidth(digitWidth);
-        digitCanvas.setHeight(extendedHeight);
-        digitCtx.setFill(decimal ? getDecimalBackgroundColor() : getDigitBackgroundColor());
-        digitCtx.fillRect(0, 0, digitWidth, extendedHeight);
-
-        digitCtx.setLineWidth(1);
-        digitCtx.setStroke(Color.web("#f0f0f0"));
-        digitCtx.strokeLine(0, 0, 0, extendedHeight);
-        digitCtx.setStroke(Color.web("#202020"));
-        digitCtx.strokeLine(digitWidth, 0, digitWidth, extendedHeight);
-
-        digitCtx.setTextAlign(TextAlignment.CENTER);
-        //digitCtx.setTextBaseline(VPos.CENTER); // Doesn't produce the same result in HTML, so we change the baseline to BOTTOM (and updated zeroOffset accordingly)
-        digitCtx.setTextBaseline(VPos.BOTTOM);   // Produces the best similar result between JavaFX and HTML
-        digitCtx.setFont(font);
-        digitCtx.setFill(decimal ? getDecimalForegroundColor() : getDigitForegroundColor());
-        for (int i = -1 ; i <= 2 ; i++) {
-            digitCtx.fillText(Integer.toString((digit + i + 10) % 10), digitWidth * 0.5, verticalSpace * (i + 1) + verticalSpace / 2);
-        }
-        return digitCanvas.snapshot(null, null);
-    }
-
 
     // ******************** Methods *******************************************
     @Override public void layoutChildren() {
@@ -255,8 +202,7 @@ public class Odometer extends Region {
     public void setDigits(final int DIGITS) {
         if (null == digits) {
             _digits = DIGITS < 0 ? 0 : DIGITS;
-            initialized = false;
-            initAndResize();
+            resize();
         } else {
             digits.set(DIGITS);
         }
@@ -266,8 +212,7 @@ public class Odometer extends Region {
             digits = new IntegerPropertyBase(_digits) {
                 @Override protected void invalidated() {
                     if (get() < 0) { set(0); }
-                    initialized = false;
-                    initAndResize();
+                    resize();
                 }
                 @Override public Object getBean() { return Odometer.this; }
                 @Override public String getName() { return "digits"; }
@@ -280,8 +225,7 @@ public class Odometer extends Region {
     public void setDecimals(final int DECIMALS) {
         if (null == decimals) {
             _decimals = DECIMALS < 1 ? 0 : DECIMALS;
-            initialized = false;
-            initAndResize();
+            resize();
         } else {
             decimals.set(DECIMALS);
         }
@@ -291,8 +235,7 @@ public class Odometer extends Region {
             decimals = new IntegerPropertyBase(_decimals) {
                 @Override protected void invalidated() {
                     if (get() < 1) { set(1); }
-                    initialized = false;
-                    initAndResize();
+                    resize();
                 }
                 @Override public Object getBean() { return Odometer.this; }
                 @Override public String getName() { return "decimals"; }
@@ -305,8 +248,7 @@ public class Odometer extends Region {
     public void setDigitBackgroundColor(final Color COLOR) {
         if (null == digitBackgroundColor) {
             _digitBackgroundColor = COLOR;
-            initialized = false;
-            initAndResize();
+            resize();
         } else {
             digitBackgroundColor.set(COLOR);
         }
@@ -315,8 +257,7 @@ public class Odometer extends Region {
         if (null == digitBackgroundColor) {
             digitBackgroundColor = new ObjectPropertyBase<Color>(_digitBackgroundColor) {
                 @Override protected void invalidated() {
-                    initialized = false;
-                    initAndResize();
+                    resize();
                 }
                 @Override public Object getBean() { return Odometer.this; }
                 @Override public String getName() { return "digitBackgroundColor"; }
@@ -330,8 +271,7 @@ public class Odometer extends Region {
     public void setDigitForegroundColor(final Color COLOR) {
         if (null == digitForegroundColor) {
             _digitForegroundColor = COLOR;
-            initialized = false;
-            initAndResize();
+            resize();
         } else {
             digitForegroundColor.set(COLOR);
         }
@@ -340,8 +280,7 @@ public class Odometer extends Region {
         if (null == digitForegroundColor) {
             digitForegroundColor = new ObjectPropertyBase<Color>(_digitForegroundColor) {
                 @Override protected void invalidated() {
-                    initialized = false;
-                    initAndResize();
+                    resize();
                 }
                 @Override public Object getBean() { return Odometer.this; }
                 @Override public String getName() { return "digitForegroundColor"; }
@@ -355,8 +294,7 @@ public class Odometer extends Region {
     public void setDecimalBackgroundColor(final Color COLOR) {
         if (null == decimalBackgroundColor) {
             _decimalBackgroundColor = COLOR;
-            initialized = false;
-            initAndResize();
+            resize();
         } else {
             decimalBackgroundColor.set(COLOR);
         }
@@ -365,8 +303,7 @@ public class Odometer extends Region {
         if (null == decimalBackgroundColor) {
             decimalBackgroundColor = new ObjectPropertyBase<Color>(_decimalBackgroundColor) {
                 @Override protected void invalidated() {
-                    initialized = false;
-                    initAndResize();
+                    resize();
                 }
                 @Override public Object getBean() { return Odometer.this; }
                 @Override public String getName() { return "decimalBackgroundColor"; }
@@ -380,8 +317,7 @@ public class Odometer extends Region {
     public void setDecimalForegroundColor(final Color COLOR) {
         if (null == decimalForegroundColor) {
             _decimalForegroundColor = COLOR;
-            initialized = false;
-            initAndResize();
+            resize();
         } else {
             decimalForegroundColor.set(COLOR);
         }
@@ -390,8 +326,7 @@ public class Odometer extends Region {
         if (null == decimalForegroundColor) {
             decimalForegroundColor = new ObjectPropertyBase<Color>(_decimalForegroundColor) {
                 @Override protected void invalidated() {
-                    initialized = false;
-                    initAndResize();
+                    resize();
                 }
                 @Override public Object getBean() { return Odometer.this; }
                 @Override public String getName() { return "decimalForegroundColor"; }
@@ -402,8 +337,6 @@ public class Odometer extends Region {
     }
     
     private void drawDigits() {
-        if (!initialized) { init(); }
-
         int    pos   = 1;
         double value = getValue();
         int    i;
@@ -412,6 +345,8 @@ public class Odometer extends Region {
         double fraction;
         String numbString;
         int    prevNum;
+
+        backgroundCtx.clearRect(0, 0, width, height);
 
         for (i = 0; i < _decimals; i++) { value *= 10; }
 
@@ -426,14 +361,33 @@ public class Odometer extends Region {
             int idx = numbString.length() - i - 1;
             num = idx < 0 ? 0 : Integer.parseInt(numbString.substring(idx, numbString.length() - i));
             if (prevNum != 9) { fraction = 0; }
-            Image[] images = i < _decimals ? decimalImages : digitImages;
-            Image digitImage = images[num];
-            backgroundCtx.drawImage(digitImage, width - digitWidth * pos, -(verticalSpace * (1 + fraction) + zeroOffset));
+            boolean isDecimal = i < _decimals;
+            drawDigit(num, isDecimal,width - digitWidth * pos, -(verticalSpace * (1 + fraction) + zeroOffset));
             pos++;
             prevNum = num;
         }
     }
 
+    private void drawDigit(int digit, boolean decimal, double x, double y) {
+        backgroundCtx.setFill(decimal ? getDecimalBackgroundColor() : getDigitBackgroundColor());
+        backgroundCtx.fillRect(0, 0, digitWidth, extendedHeight);
+
+        backgroundCtx.setLineWidth(1);
+        backgroundCtx.setStroke(Color.web("#f0f0f0"));
+        backgroundCtx.strokeLine(0, 0, 0, extendedHeight);
+        backgroundCtx.setStroke(Color.web("#202020"));
+        backgroundCtx.strokeLine(digitWidth, 0, digitWidth, extendedHeight);
+
+        backgroundCtx.setTextAlign(TextAlignment.CENTER);
+        //backgroundCtx.setTextBaseline(VPos.CENTER); // Doesn't produce the same result in HTML, so we change the baseline to BOTTOM (and updated zeroOffset accordingly)
+        backgroundCtx.setTextBaseline(VPos.BOTTOM);   // Produces the best similar result between JavaFX and HTML
+        backgroundCtx.setFont(font);
+        backgroundCtx.setFill(decimal ? getDecimalForegroundColor() : getDigitForegroundColor());
+
+        for (int i = -1 ; i <= 2 ; i++) {
+            backgroundCtx.fillText(Integer.toString((digit + i + 10) % 10), x + digitWidth * 0.5, y + verticalSpace * (i + 1) + verticalSpace / 2);
+        }
+    }
 
     // ******************** Event handling ************************************
     public void setOnDigitChanged(final OdometerObserver OBSERVER) { addOdometerObserver(OBSERVER); }
@@ -492,16 +446,12 @@ public class Odometer extends Region {
             foreground.setWidth(width);
             foreground.setHeight(height);
 
-            initialized = false;
-
             redraw();
         }
     }
 
     private void redraw() {
-        if (!isReadyToInit()) return;
         foreground.setFill(foregroundGradient);
-        if (!initialized) { init(); }
         drawDigits();
     }
 }

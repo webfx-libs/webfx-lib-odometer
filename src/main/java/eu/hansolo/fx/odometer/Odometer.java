@@ -16,6 +16,7 @@
 
 package eu.hansolo.fx.odometer;
 
+import dev.webfx.platform.resource.Resource;
 import dev.webfx.platform.useragent.UserAgent;
 import eu.hansolo.fx.odometer.event.OdometerEvent;
 import eu.hansolo.fx.odometer.event.OdometerObserver;
@@ -51,6 +52,12 @@ import java.util.List;
  */
 @DefaultProperty("children")
 public class Odometer extends Region {
+
+    static {
+        // Loading the font file to ensure we have the same Arial font metrics over all platforms (noticed some differences between Android & iOS)
+        if (!UserAgent.isBrowser()) // Not doing it in the browser, because this is asynchronous and the font looks too different on initial drawing
+            Font.loadFont(Resource.toUrl("Arial-Regular.ttf", Odometer.class), 16);
+    }
     public  static final Color                  DEFAULT_DIGIT_BACKGROUND_COLOR   = Color.web("#050505");
     public  static final Color                  DEFAULT_DIGIT_FOREGROUND_COLOR   = Color.web("#f8f8f8");
     public  static final Color                  DEFAULT_DECIMAL_BACKGROUND_COLOR = Color.web("#f0f0f0");

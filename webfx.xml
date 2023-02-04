@@ -11,6 +11,7 @@
 
     <exported-packages>
         <source-packages/>
+        <resource-package>eu.hansolo.fx.odometer</resource-package>
     </exported-packages>
 
     <dependencies>
@@ -43,6 +44,7 @@
 
             <exported-packages>
                 <source-packages/>
+                <resource-package>eu.hansolo.fx.odometer</resource-package>
             </exported-packages>
 
             <dependencies>
@@ -58,6 +60,7 @@
                 <module>java.base</module>
                 <module>webfx-kit-javafxbase-emul</module>
                 <module>webfx-kit-javafxgraphics-emul</module>
+                <module>webfx-platform-resource</module>
                 <module>webfx-platform-useragent</module>
             </used-by-source-modules>
 

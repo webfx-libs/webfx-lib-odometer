@@ -13,7 +13,7 @@
 
     <exported-packages>
         <source-packages/>
-        <resource-package>eu.hansolo.fx.odometer</resource-package>
+        <resource-packages/>
     </exported-packages>
 
     <dependencies>
